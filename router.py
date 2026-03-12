@@ -1,46 +1,28 @@
 import os
-import requests
-from google import genai
+
 from dotenv import load_dotenv
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOllama
+
 
 load_dotenv()
 
-MODEL = os.getenv("MODEL", "gemini")
+MODEL = os.getenv("MODEL", "gemini").lower()
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "deepseek-coder")
 
 
-class ModelRouter:
+def get_langchain_llm():
+    """Return a LangChain LLM/ChatModel based on environment configuration."""
+    if MODEL == "gemini":
+        model_name = os.getenv("MODEL_NAME", "gemini-2.0-flash")
+        api_key = os.getenv("GEMINI_API_KEY")
+        return ChatGoogleGenerativeAI(model=model_name, api_key=api_key, temperature=0.1)
 
-    def __init__(self):
+    if MODEL == "ollama":
+        return ChatOllama(model=OLLAMA_MODEL, temperature=0.1)
 
-        
-        if MODEL == "gemini":
-            self.client = genai.Client(
-                api_key=os.getenv("GEMINI_API_KEY")
-            )
-
-    def generate(self, prompt):
-
-        if MODEL == "gemini":
-
-            response = self.client.models.generate_content(
-                model=os.getenv("MODEL_NAME"),
-                contents=prompt
-            )
-
-            if response.candidates:
-                return response.candidates[0].content.parts[0].text
-
-            return ""
-
-        if MODEL == "ollama":
-
-            r = requests.post(
-                "http://localhost:11434/api/generate",
-                json={
-                    "model": "deepseek-coder",
-                    "prompt": prompt,
-                    "stream": False
-                }
-            )
-
-            return r.json()["response"]
+    # Fallback to a simple default to avoid hard crashes if MODEL is misconfigured
+    model_name = os.getenv("MODEL_NAME", "gemini-2.0-flash")
+    api_key = os.getenv("GEMINI_API_KEY")
+    return ChatGoogleGenerativeAI(model=model_name, api_key=api_key, temperature=0.1)

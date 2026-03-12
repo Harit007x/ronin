@@ -1,16 +1,37 @@
+import os
+import threading
+import time
+
 import typer
+
 from agent import Agent
 
-app = typer.Typer()
 
+def main(task: str = typer.Argument(..., help="Task for the coding agent")) -> None:
+    """Run the coding agent on a single task."""
 
-@app.command()
-def run(task: str):
+    # Resolve model info for display
+    model_env = os.getenv("MODEL", "gemini").lower()
+    if model_env == "gemini":
+        model_name = os.getenv("MODEL_NAME", "gemini")
+        model_display = model_name
+    elif model_env == "ollama":
+        ollama_model = os.getenv("OLLAMA_MODEL", "deepseek-coder")
+        model_display = f"ollama/{ollama_model}"
+    else:
+        model_display = model_env
 
-    agent = Agent()
+    agent = Agent(model_display=model_display)
 
-    agent.run(task)
+    print("\n==============================")
+    print(f"  USING MODEL -> {model_display}")
+    print("==============================\n")
+
+    try:
+        agent.run(task)
+    finally:
+        pass
 
 
 if __name__ == "__main__":
-    app()
+    typer.run(main)
