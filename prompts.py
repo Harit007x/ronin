@@ -10,7 +10,9 @@ write_file(path, content)
 list_files(path)
 run_command(command)
 
-Always respond ONLY with JSON.
+Always respond ONLY with a single JSON object.
+Do not include any explanations, code examples, or markdown.
+Do not wrap the JSON in ``` fences.
 
 Example:
 

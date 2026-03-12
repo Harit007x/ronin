@@ -14,6 +14,8 @@ def write_file(path, content):
 
 
 def list_files(path="."):
+    if not path:
+        path = "."
     return os.listdir(path)
 
 

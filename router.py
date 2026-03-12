@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = os.getenv("MODEL", "gemini")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "deepseek-coder")
 
 
 class ModelRouter:
@@ -37,10 +38,14 @@ class ModelRouter:
             r = requests.post(
                 "http://localhost:11434/api/generate",
                 json={
-                    "model": "deepseek-coder",
+                    "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False
-                }
+                },
+                timeout=60,
             )
 
-            return r.json()["response"]
+            r.raise_for_status()
+
+            data = r.json()
+            return data.get("response", "")

@@ -9,12 +9,11 @@ class Agent:
     def __init__(self):
         self.model = ModelRouter()
         self.context = SYSTEM_PROMPT
+        self.last_result = None
 
     def step(self):
 
         response = self.model.generate(self.context)
-
-        print("\nMODEL RESPONSE:\n", response)
 
         try:
             action = json.loads(response)
@@ -23,7 +22,6 @@ class Agent:
             return False
 
         if action["tool"] == "finish":
-            print("\nTASK COMPLETE")
             return True
 
         tool = action["tool"]
@@ -31,7 +29,7 @@ class Agent:
 
         result = TOOLS[tool](**args)
 
-        print("\nTOOL RESULT:\n", result)
+        self.last_result = result
 
         self.context += f"\nTool {tool} result:\n{result}"
 
@@ -47,3 +45,6 @@ class Agent:
 
             if done:
                 break
+
+        if self.last_result is not None:
+            print("\nRESULT:\n", self.last_result)
