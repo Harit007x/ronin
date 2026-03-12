@@ -1,0 +1,37 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Environment & secret files
+.env
+*.env
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+
+# VS Code / Cursor
+.vscode/
+.cursor/
+
+# Pip / cache
+pip-wheel-metadata/
+.cache/
