@@ -5,6 +5,8 @@ from rich.panel import Panel
 from rich.live import Live
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.prompt import Prompt
+
 
 from dotenv import load_dotenv
 
@@ -125,7 +127,26 @@ class Agent:
         self.console.print(f"[bold yellow]Executing {tool}...[/bold yellow]")
         start_time = time.time()
         try:
-            result = TOOLS[tool](**args)
+            if tool == "run_command":
+                cmd = args.get("cmd") or args.get("command")
+                self.console.print(Panel(f"[bold white]{cmd}[/bold white]", title="[bold yellow]Pending Command Approval[/bold yellow]"))
+                choice = Prompt.ask("Approve command?", choices=["Y", "N", "E", "y", "n", "e"], default="Y").upper()
+                
+                if choice == "N":
+                    self.console.print("[bold red]Command rejected by user.[/bold red]")
+                    result = "Error: Command rejected by user."
+                elif choice == "E":
+                    edited_cmd = Prompt.ask("Edit command")
+                    args = {"cmd": edited_cmd}
+                    self.console.print(f"[bold yellow]Executing edited command: {edited_cmd}[/bold yellow]")
+                    result = TOOLS[tool](**args)
+                else:
+                    args = {"cmd": cmd}
+                    result = TOOLS[tool](**args)
+
+            else:
+                result = TOOLS[tool](**args)
+
             duration = time.time() - start_time
             
             # If a command was run in verification stage, mark as verified if it succeeded
