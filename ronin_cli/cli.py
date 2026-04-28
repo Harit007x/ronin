@@ -5,19 +5,29 @@ import time
 import typer
 
 from dotenv import load_dotenv
-from agent import Agent
+from .agent import Agent
 
 
 def load_config():
-    """Load configuration from local or global .env file."""
+    """Load configuration from local, global, or installation .env files."""
     # 1. Try local .env (current working directory)
-    load_dotenv(os.path.join(os.getcwd(), ".env"))
+    local_env = os.path.join(os.getcwd(), ".env")
+    if os.path.exists(local_env):
+        load_dotenv(local_env)
     
-    # 2. Fallback to global .env if critical vars are missing
-    if not os.getenv("MODEL") and not os.getenv("GEMINI_API_KEY"):
+    # 2. Try global fallback in ~/.ronin/.env
+    if not os.getenv("GEMINI_API_KEY"):
         global_config = os.path.expanduser("~/.ronin/.env")
         if os.path.exists(global_config):
             load_dotenv(global_config)
+            
+    # 3. Try installation folder fallback
+    if not os.getenv("GEMINI_API_KEY"):
+        install_env = r"c:\Users\Admin\Desktop\Github Projects\ronin\.env"
+        if os.path.exists(install_env):
+            load_dotenv(install_env)
+
+
 
 
 def run_agent(task: str = typer.Argument(..., help="Task for the coding agent")) -> None:
@@ -38,7 +48,7 @@ def run_agent(task: str = typer.Argument(..., help="Task for the coding agent"))
         import msvcrt
         import sys
 
-        console.print("[bold cyan]Available Models (Use ↑/↓ arrows and press Enter to select):[/bold cyan]")
+        console.print("[bold cyan]Available Models (Use Up/Down arrows and press Enter to select):[/bold cyan]")
         
         idx = 0
         sys.stdout.write("\033[?25l")  # Hide cursor
@@ -70,12 +80,11 @@ def run_agent(task: str = typer.Argument(..., help="Task for the coding agent"))
         selected_model = models[idx]
 
         updates = {}
-        if selected_model == "gemini-3-flash":
-            updates = {"MODEL": "gemini", "MODEL_NAME": "gemini-3-flash"}
-        elif selected_model == "gemini-3.1-pro-preview":
-            updates = {"MODEL": "gemini", "MODEL_NAME": "gemini-3.1-pro-preview"}
-        elif selected_model == "gpt-oss":
+        if selected_model == "gpt-oss":
             updates = {"MODEL": "ollama", "OLLAMA_MODEL": "gpt-oss"}
+        else:
+            updates = {"MODEL": "gemini", "MODEL_NAME": selected_model}
+
 
         local_env = os.path.join(os.getcwd(), ".env")
         global_env = os.path.expanduser("~/.ronin/.env")

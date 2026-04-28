@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="ronin-cli",
     version="0.1.0",
-    py_modules=["agent", "cli", "prompts", "router", "tools"],
+    packages=find_packages(),
     install_requires=[
         "typer>=0.12.0",
         "rich>=13.0.0",
@@ -14,7 +14,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "ronin=cli:main",
+            "ronin=ronin_cli.cli:main",
         ],
     },
+
 )

@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
-from prompts import SYSTEM_PROMPT
-from tools import TOOLS
-from router import get_langchain_llm
+from .prompts import SYSTEM_PROMPT
+from .tools import TOOLS
+from .router import get_langchain_llm
+
 
 
 load_dotenv()

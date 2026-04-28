@@ -42,18 +42,14 @@ If using VS Code:
 
 ### 4. Install Dependencies
 
-Install all required Python packages:
+Install the CLI tool locally in editable mode:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-This will install all the necessary dependencies including:
-- LangChain for AI orchestration
-- Rich for console output
-- Typer for CLI interface
-- Various AI model integrations
-- And other supporting libraries
+This will link dependencies and register the `ronin` command globally.
+
 
 ### 5. Environment Configuration
 
@@ -73,11 +69,12 @@ MODEL_NAME=gemini-pro  # or your preferred Gemini model
 
 ### Command Line Interface
 
-Run the coding agent with a task:
+Run the coding agent with a task anywhere across your terminal directories:
 
 ```bash
-python cli.py "Create a Python function to calculate fibonacci numbers"
+python -m ronin_cli.cli "Create a Python function to calculate fibonacci numbers"
 ```
+
 
 ### Available Options
 
@@ -86,21 +83,22 @@ python cli.py "Create a Python function to calculate fibonacci numbers"
 
 ## Configuration
 
-The agent supports multiple AI models:
+The agent supports multiple backend systems. Update options gracefully via interactive menus:
 
-- **Gemini**: Google's AI model (requires API key)
-- **Ollama**: Local AI models via Ollama
+```bash
+python -m ronin_cli.cli current-model
+```
 
-Configure your preferred model in the `.env` file as shown in the setup section.
+
 
 ## Project Structure
 
-- `agent.py`: Main agent implementation
-- `cli.py`: Command-line interface
-- `tools.py`: Available tools for the agent
-- `prompts.py`: System prompts and templates
-- `router.py`: Model routing logic
-- `requirements.txt`: Python dependencies
+- `ronin_cli/agent.py`: Main execution workflows
+- `ronin_cli/cli.py`: Typer parameters mapping
+- `ronin_cli/tools.py`: Automated local helper routines
+- `ronin_cli/prompts.py`: Context payloads
+- `ronin_cli/router.py`: Network integrations
+
 
 ## Contributing
 
