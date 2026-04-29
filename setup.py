@@ -10,7 +10,9 @@ setup(
         "python-dotenv>=1.0.0",
         "langchain-core>=0.1.0",
         "langchain-google-genai>=1.0.0",
+        "langchain-community>=0.0.1",
         "duckduckgo-search>=5.0.0"
+
     ],
     entry_points={
         "console_scripts": [

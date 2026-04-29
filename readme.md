@@ -16,78 +16,41 @@ git clone <repository-url>
 cd ronin
 ```
 
-### 2. Create a Virtual Environment
+### 2. Run Global Setup (Windows)
 
-Create and activate a Python virtual environment to isolate project dependencies:
+To start assisting on codebases in separate workspace environments without redundant installations:
 
-**On Linux/macOS:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+1. Exit internal virtual sandboxes (`deactivate`).
+2. Open Windows Command Prompt in the cloned folder and run:
+   ```cmd
+   install.bat
+   ```
 
-**On Windows:**
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
+The standalone installer verifies dependencies, embeds scripts natively on your Windows PATH variables, and builds profile states securely.
 
-### 3. Select Python Interpreter (VS Code)
+### 3. Global API Routing fallback
+Configure underlying platform routes under:
+`C:\Users\ADMIN\.ronin\.env`
 
-If using VS Code:
-1. Open the project folder in VS Code
-2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) to open the command palette
-3. Type "Python: Select Interpreter" and select it
-4. Choose the interpreter from your virtual environment (should show something like `./venv/bin/python` or `./venv/Scripts/python.exe`)
-
-### 4. Install Dependencies
-
-Install the CLI tool locally in editable mode:
-
-```bash
-pip install -e .
-```
-
-This will link dependencies and register the `ronin` command globally.
-
-
-### 5. Environment Configuration
-
-Create a `.env` file in the project root and configure your AI model settings:
-
-```bash
-# For Gemini (default)
+```env
 MODEL=gemini
-MODEL_NAME=gemini-pro  # or your preferred Gemini model
-
-# For Ollama
-# MODEL=ollama
-# OLLAMA_MODEL=deepseek-coder  # or your preferred Ollama model
+MODEL_NAME=gemini-3-flash
+GEMINI_API_KEY=<key>
 ```
 
 ## Usage
 
-### Command Line Interface
-
-Run the coding agent with a task anywhere across your terminal directories:
+Run task actions anywhere in separate codebase directories:
 
 ```bash
-python -m ronin_cli.cli "Create a Python function to calculate fibonacci numbers"
+ronin "Create integration tests for core logic"
 ```
 
-
-### Available Options
-
-- `--help`: Show help information
-- `task`: The coding task you want the agent to perform
-
-## Configuration
-
-The agent supports multiple backend systems. Update options gracefully via interactive menus:
-
+Modify underlying back-end connections:
 ```bash
-python -m ronin_cli.cli current-model
+ronin current-model
 ```
+
 
 
 
