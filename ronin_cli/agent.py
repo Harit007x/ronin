@@ -276,7 +276,37 @@ class Agent:
         return False
 
     def run(self, task: str) -> None:
-        self.messages.append(HumanMessage(content=f"User task:\n{task}"))
+        import re, os
+        mentions = re.findall(r'@([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9]+)', task)
+        file_context = ""
+        
+        for mention in mentions:
+            target_path = os.path.join(os.getcwd(), mention)
+            if not os.path.exists(target_path):
+                found_match = False
+                base = os.path.basename(mention)
+                for root, _, files in os.walk(os.getcwd()):
+                    if base in files:
+                        target_path = os.path.join(root, base)
+                        found_match = True
+                        break
+                if not found_match:
+                    continue
+
+            try:
+                with open(target_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                file_context += f"\n\n--- Content of @{mention} ---\n{content}\n"
+                self.console.print(f"[bold cyan]📎 Injected context for @{mention}[/bold cyan]")
+            except Exception as e:
+                self.console.print(f"[bold yellow]⚠️ Failed to load @{mention} content ({e})[/bold yellow]")
+
+        full_prompt = f"User task:\n{task}"
+        if file_context:
+            full_prompt += file_context
+
+        self.messages.append(HumanMessage(content=full_prompt))
+
 
         try:
             for iteration in range(15):  # Increased iteration limit
