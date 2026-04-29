@@ -10,22 +10,22 @@ from .agent import Agent
 
 def load_config():
     """Load configuration from local, global, or installation .env files."""
-    # 1. Try local .env (current working directory)
+    # 1. Load global fallback in ~/.ronin/.env
+    global_config = os.path.expanduser("~/.ronin/.env")
+    if os.path.exists(global_config):
+        load_dotenv(global_config, override=True)
+
+    # 2. Try local .env (current working directory) - takes precedence
     local_env = os.path.join(os.getcwd(), ".env")
     if os.path.exists(local_env):
-        load_dotenv(local_env)
-    
-    # 2. Try global fallback in ~/.ronin/.env
-    if not os.getenv("GEMINI_API_KEY"):
-        global_config = os.path.expanduser("~/.ronin/.env")
-        if os.path.exists(global_config):
-            load_dotenv(global_config)
-            
+        load_dotenv(local_env, override=True)
+
     # 3. Try installation folder fallback
-    if not os.getenv("GEMINI_API_KEY"):
-        install_env = r"c:\Users\Admin\Desktop\Github Projects\ronin\.env"
-        if os.path.exists(install_env):
-            load_dotenv(install_env)
+    install_env = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.exists(install_env) and not os.getenv("GEMINI_API_KEY"):
+        load_dotenv(install_env, override=True)
+
+
 
 
 

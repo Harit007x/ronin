@@ -30,7 +30,8 @@ The standalone installer verifies dependencies, embeds scripts natively on your 
 
 ### 3. Global API Routing fallback
 Configure underlying platform routes under:
-`C:\Users\ADMIN\.ronin\.env`
+`%USERPROFILE%\.ronin\.env`
+
 
 ```env
 MODEL=gemini
