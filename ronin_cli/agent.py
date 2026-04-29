@@ -24,13 +24,106 @@ load_dotenv()
 class Agent:
     def __init__(self, model_display: str = "Unknown") -> None:
         self.llm = get_langchain_llm()
-        self.messages = [SystemMessage(content=SYSTEM_PROMPT)]
+        self.messages = []
         self.last_result = None
         self.model_display = model_display
         self.console = Console()
         self.tool_history = []  # Track (tool, args) to prevent loops
         self.current_stage = "PLANNING"
         self.has_verified = False  # Track if verification has been performed
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+
+
+        import os
+        self._history_file = os.path.join(os.getcwd(), ".ronin_history.json")
+        self.load_history()
+
+    def load_history(self):
+        """Load conversation history from local working directory."""
+        import os
+        if os.path.exists(self._history_file):
+            try:
+                with open(self._history_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, dict) and "sessions" in data:
+                        active_id = data.get("active_session_id")
+                        if active_id and active_id in data["sessions"]:
+                            session = data["sessions"][active_id]
+                            for item in session.get("messages", []):
+                                if item.get("type") == "system":
+                                    self.messages.append(SystemMessage(content=item["content"]))
+                                elif item.get("type") == "human":
+                                    self.messages.append(HumanMessage(content=item["content"]))
+                                elif item.get("type") == "ai":
+                                    self.messages.append(AIMessage(content=item["content"]))
+                    else:
+                        # Legacy backup format support
+                        if isinstance(data, list):
+                            for item in data:
+                                if item.get("type") == "system":
+                                    self.messages.append(SystemMessage(content=item["content"]))
+                                elif item.get("type") == "human":
+                                    self.messages.append(HumanMessage(content=item["content"]))
+                                elif item.get("type") == "ai":
+                                    self.messages.append(AIMessage(content=item["content"]))
+            except Exception as e:
+                self.console.print(f"[bold red]Warning:[/] Failed to load history ({e}).")
+
+        # Guarantee system prompt at start
+        if not self.messages or not isinstance(self.messages[0], SystemMessage):
+            self.messages.insert(0, SystemMessage(content=SYSTEM_PROMPT))
+
+    def save_history(self):
+        """Persist current conversation history onto local working directory."""
+        msg_data = []
+        first_human_prompt = ""
+        for msg in self.messages:
+            if isinstance(msg, SystemMessage):
+                msg_data.append({"type": "system", "content": msg.content})
+            elif isinstance(msg, HumanMessage):
+                msg_data.append({"type": "human", "content": msg.content})
+                if not first_human_prompt:
+                    first_human_prompt = msg.content.replace("User task:\n", "").replace("\n", " ").replace("\r", " ").strip()
+
+            elif isinstance(msg, AIMessage):
+                msg_data.append({"type": "ai", "content": msg.content})
+
+        # Load existing data to preserve concurrent logs
+        data = {"active_session_id": "", "sessions": {}}
+        import os
+        if os.path.exists(self._history_file):
+            try:
+                with open(self._history_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if not isinstance(data, dict) or "sessions" not in data:
+                        data = {"active_session_id": "legacy", "sessions": {"legacy": {"id": "legacy", "title": "Legacy Session", "messages": []}}}
+            except Exception:
+                pass
+
+        active_id = data.get("active_session_id")
+        if not active_id:
+            import time
+            active_id = f"session_{int(time.time())}"
+            data["active_session_id"] = active_id
+
+        if "sessions" not in data:
+            data["sessions"] = {}
+
+        # Save session payload
+        data["sessions"][active_id] = {
+            "id": active_id,
+            "title": first_human_prompt if first_human_prompt else "Ongoing Task",
+            "messages": msg_data
+        }
+
+        try:
+            with open(self._history_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            self.console.print(f"[bold red]Warning:[/] Failed to save history ({e}).")
+
+
 
     def display_step_header(self, thought: str = None):
         """Displays a rich header for the current step."""
@@ -59,6 +152,20 @@ class Agent:
             start_time = time.time()
             response_msg = self.llm.invoke(self.messages)
             duration = time.time() - start_time
+            
+            # Track token usage
+            if hasattr(response_msg, "usage_metadata") and response_msg.usage_metadata:
+                self.total_input_tokens += response_msg.usage_metadata.get("input_tokens", 0)
+                self.total_output_tokens += response_msg.usage_metadata.get("output_tokens", 0)
+            elif hasattr(response_msg, "response_metadata") and response_msg.response_metadata:
+                meta = response_msg.response_metadata
+                if "token_usage" in meta:
+                    self.total_input_tokens += meta["token_usage"].get("prompt_tokens", 0)
+                    self.total_output_tokens += meta["token_usage"].get("completion_tokens", 0)
+                elif "usage" in meta:
+                    self.total_input_tokens += meta["usage"].get("prompt_tokens", 0)
+                    self.total_output_tokens += meta["usage"].get("completion_tokens", 0)
+
 
         # Support both message objects and plain strings
         if hasattr(response_msg, "content"):
@@ -171,13 +278,23 @@ class Agent:
     def run(self, task: str) -> None:
         self.messages.append(HumanMessage(content=f"User task:\n{task}"))
 
-        for iteration in range(15):  # Increased iteration limit
-            done = self.step()
-            if done:
-                break
-        else:
-            self.console.print("[bold red]Limit reached:[/] Agent stopped after 15 steps.")
+        try:
+            for iteration in range(15):  # Increased iteration limit
+                done = self.step()
+                if done:
+                    break
+            else:
+                self.console.print("[bold red]Limit reached:[/] Agent stopped after 15 steps.")
+        finally:
+            self.save_history()
+            
+        self.console.print(f"\n[bold cyan]📊 Token Usage for this task:[/bold cyan]")
+        self.console.print(f"   [bold]Input tokens:[/]  {self.total_input_tokens}")
+        self.console.print(f"   [bold]Output tokens:[/] {self.total_output_tokens}")
+        self.console.print(f"   [bold]Total tokens:[/]  {self.total_input_tokens + self.total_output_tokens}\n")
 
         if self.last_result is not None:
+
              # Result is already printed in the 'finish' block if message is present
              pass
+
