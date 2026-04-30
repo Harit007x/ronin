@@ -235,6 +235,90 @@ def search_knowledge(query):
     except Exception as e:
         return f"Error searching knowledge: {str(e)}"
 
+def get_embeddings():
+    import os
+    model = os.getenv("MODEL", "gemini").lower()
+    if model == "ollama":
+        from langchain_community.embeddings import OllamaEmbeddings
+        return OllamaEmbeddings(model=os.getenv("OLLAMA_MODEL", "deepseek-coder"))
+    else:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is missing. Cannot run semantic index/search.")
+        return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+
+def index_codebase(path="."):
+    """Index the entire codebase to allow for semantic search later."""
+    import os
+    from langchain_core.documents import Document
+    from langchain_community.vectorstores import FAISS
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    try:
+        embeddings = get_embeddings()
+    except Exception as e:
+        return f"Embeddings Error: {e}"
+
+    documents = []
+    for root, _, files in os.walk(path):
+        if any(ignored in root for ignored in ["venv", ".git", "__pycache__", "node_modules", ".ronin"]):
+            continue
+        for file in files:
+            if file.endswith((".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".txt", ".json", ".html", ".css", ".java", ".go", ".c", ".cpp", ".rs")):
+                full_path = os.path.join(root, file)
+                try:
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        text = f.read()
+                        documents.append(Document(page_content=text, metadata={"source": full_path}))
+                except Exception:
+                    pass
+    
+    if not documents:
+        return "No code files found to index."
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_documents(documents)
+    
+    try:
+        vectorstore = FAISS.from_documents(chunks, embeddings)
+        index_dir = os.path.join(".ronin", "vector_index")
+        os.makedirs(index_dir, exist_ok=True)
+        vectorstore.save_local(index_dir)
+        return f"Successfully indexed {len(documents)} files into {len(chunks)} searchable chunks."
+    except Exception as e:
+        return f"Failed to build vector index: {e}"
+
+def semantic_search(query, k=5):
+    """Search the codebase for code matching the meaning of the query."""
+    import os
+    from langchain_community.vectorstores import FAISS
+    
+    index_dir = os.path.join(".ronin", "vector_index")
+    if not os.path.exists(index_dir):
+        return "Codebase is not indexed yet. Please run the 'index_codebase' tool first."
+        
+    try:
+        embeddings = get_embeddings()
+        vectorstore = FAISS.load_local(index_dir, embeddings, allow_dangerous_deserialization=True)
+        
+        if isinstance(k, str):
+            k = int(k)
+            
+        docs = vectorstore.similarity_search(query, k=k)
+        
+        if not docs:
+            return "No relevant code snippets found."
+            
+        results = []
+        for i, doc in enumerate(docs, 1):
+            source = doc.metadata.get('source', 'Unknown')
+            results.append(f"--- Result {i} (Source: {source}) ---\n{doc.page_content}\n")
+            
+        return "\n".join(results)
+    except Exception as e:
+        return f"Semantic Search Error: {e}"
+
 
 TOOLS = {
     "read_file": read_file,
@@ -248,5 +332,7 @@ TOOLS = {
     "search_code": search_code,
     "get_project_structure": get_project_structure,
     "web_search": web_search,
-    "run_command": run_command
+    "run_command": run_command,
+    "index_codebase": index_codebase,
+    "semantic_search": semantic_search
 }

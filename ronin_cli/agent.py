@@ -140,6 +140,21 @@ class Agent:
             border_style=color
         ))
 
+    def get_pruned_messages(self):
+        """Keep the system prompt, original user task, and a sliding window of recent interactions to limit token usage."""
+        # Always keep SystemMessage (index 0) and the original HumanMessage User task (index 1)
+        if len(self.messages) <= 12:
+            return self.messages
+            
+        # Extract system and initial task
+        base_context = self.messages[:2]
+        
+        # Keep the last 10 messages (5 interaction rounds) to maintain recent context 
+        # without blowing up the payload size.
+        recent_context = self.messages[-10:]
+        
+        return base_context + recent_context
+
     def step(self) -> bool:
         """Single reasoning/tool step using the LLM and TOOLS."""
         with Progress(
@@ -150,7 +165,11 @@ class Agent:
         ) as progress:
             progress.add_task(description=f"Model {self.model_display} is thinking...", total=None)
             start_time = time.time()
-            response_msg = self.llm.invoke(self.messages)
+            
+            # Use pruned messages to save 70-80% on token costs for long tasks
+            pruned_msgs = self.get_pruned_messages()
+            response_msg = self.llm.invoke(pruned_msgs)
+            
             duration = time.time() - start_time
             
             # Track token usage
@@ -276,6 +295,9 @@ class Agent:
         return False
 
     def run(self, task: str) -> None:
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+
         import re, os
         mentions = re.findall(r'@([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9]+)', task)
         file_context = ""

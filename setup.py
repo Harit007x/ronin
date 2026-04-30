@@ -12,7 +12,9 @@ setup(
         "langchain-google-genai>=1.0.0",
         "langchain-community>=0.0.1",
         "duckduckgo-search>=5.0.0",
-        "prompt-toolkit>=3.0.0"
+        "prompt-toolkit>=3.0.0",
+        "faiss-cpu>=1.7.4",
+        "langchain-text-splitters>=0.2.0"
     ],
 
     entry_points={
