@@ -16,27 +16,38 @@ git clone <repository-url>
 cd ronin
 ```
 
-### 2. Run Global Setup (Windows)
+### 2. Run Global Setup
 
-To start assisting on codebases in separate workspace environments without redundant installations:
+To start assisting on codebases in separate workspace environments without redundant installations, use our 1-shot global installers.
 
-1. Exit internal virtual sandboxes (`deactivate`).
-2. Open Windows Command Prompt in the cloned folder and run:
-   ```cmd
-   install.bat
-   ```
+**Note:** Ensure you exit any internal virtual environments (run `deactivate`) before running the installer.
 
+**For Windows:**
+Open Windows Command Prompt in the cloned folder and run:
+```cmd
+install.bat
+```
 The standalone installer verifies dependencies, embeds scripts natively on your Windows PATH variables, and builds profile states securely.
 
-### 3. Global API Routing fallback
-Configure underlying platform routes under:
-`%USERPROFILE%\.ronin\.env`
+**For macOS / Linux:**
+Open your terminal in the cloned folder and run:
+```bash
+chmod +x install.sh
+./install.sh
+```
+This script detects your environment, installs dependencies, configures your PATH, and sets up your credentials.
 
+### 3. Global API Routing Configuration
+
+The setup scripts will prompt you for your API key. If you prefer to configure it manually, edit the following file:
+
+- **Windows:** `%USERPROFILE%\.ronin\.env`
+- **macOS / Linux:** `~/.ronin/.env`
 
 ```env
 MODEL=gemini
 MODEL_NAME=gemini-3-flash
-GEMINI_API_KEY=<key>
+GEMINI_API_KEY=<your_api_key_here>
 ```
 
 ## Usage
